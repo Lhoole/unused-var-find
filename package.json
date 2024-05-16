@@ -1,0 +1,34 @@
+{
+  "name": "unused-var-find",
+  "version": "1.0.0",
+  "description": "Finds unused variables and generates a linked md file to make deployment easier.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lhoole/unused-var-find.git"
+  },
+  "keywords": [
+    "unused",
+    "variable",
+    "typescript",
+    "javascript",
+    "markdown",
+    "js",
+    "ts",
+    "md"
+  ],
+  "author": "lhoole",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lhoole/unused-var-find/issues"
+  },
+  "homepage": "https://github.com/Lhoole/unused-var-find#readme",
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "ts-morph": "^22.0.0",
+    "typescript": "^5.4.5"
+  }
+}
