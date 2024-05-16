@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 import { Project } from 'ts-morph';
 
 async function findUnusedVariables() {
