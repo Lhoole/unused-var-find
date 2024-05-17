@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "Finds unused variables and generates a linked md file to make deployment easier.",
   "main": "dist/main.js",
-	"bin": {
-		"unused-var-find": "./dist/main.js"
-	},
+  "bin": {
+    "unused-var-find": "./dist/main.js"
+  },
   "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -33,5 +35,8 @@
     "@types/node": "^20.12.12",
     "ts-morph": "^22.0.0",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "tsc": "^2.0.4"
   }
 }

@@ -1,67 +1,88 @@
-import { Project } from 'ts-morph';
-import * as path from 'path';
+#! /usr/bin/env node
+import { Project, SourceFile } from "ts-morph";
+import * as fs from "fs";
+import * as path from "path";
 
-async function findUnusedVariables() {
-  // Create a new TypeScript project
-  const project = new Project();
-
-  // Load all TypeScript files in the 'src' directory
-  const sourceFiles = project.addSourceFilesAtPaths('src/**/*.{ts,js,tsx}');
-
-  // Object to store variable declarations
-  const variableDeclarations: { [key: string]: { used: boolean, filePath: string } } = {};
-
-  // Iterate over each source file
-  sourceFiles.forEach(sourceFile => {
-    const filePath = sourceFile.getFilePath();
-    const relativeFilePath = path.relative(process.cwd(), filePath);
-
-    // Traverse the AST of the source file
-    sourceFile.forEachDescendant(node => {
-      // Check if the node is a variable declaration
-      if (node.getKindName() === 'VariableDeclaration') {
-        // Get the name of the variable
-        const variableName = node.getFirstChild()?.getText();
-
-        if (variableName) {
-          // Mark the variable as declared
-          variableDeclarations[variableName] = { used: false, filePath: `./${relativeFilePath}` };
-        }
-      }
-
-      // Check if the node is an identifier (variable usage)
-      if (node.getKindName() === 'Identifier') {
-        // Get the name of the identifier
-        const identifierName = node.getText();
-
-        // Check if the identifier corresponds to a variable declaration
-        if (variableDeclarations.hasOwnProperty(identifierName)) {
-          // Mark the variable as used
-          variableDeclarations[identifierName].used;
-        }
-      }
-    });
-  });
-
-  // Generate Markdown report with unused variables
-  const unusedVariables = Object.entries(variableDeclarations)
-    .filter(([_, { used }]) => !used) // Filter only unused variables
-    .map(([variable, { filePath }]) => `- [\`${variable}\`](${filePath})`) // Use backticks to format variable names
-    .join('\n');
-
-  // If there are no unused variables, provide a message indicating so
-  const markdownContent = unusedVariables || 'No unused variables found';
-
-  // Write the report to a file
-  await writeFile('unused_variables.md', markdownContent);
+// Ensure the shebang line is at the top of the file
+if (require.main === module) {
+	process.argv.splice(1, 0, __filename);
 }
 
-async function writeFile(filePath: string, content: string) {
-  const fs = require('fs').promises;
-  await fs.writeFile(filePath, content, 'utf-8');
+// Function to find unused variables in a source file
+function findUnusedVariables(sourceFile: SourceFile): string[] {
+	const unusedVariables: string[] = [];
+	const variableDeclarations = sourceFile.getVariableDeclarations();
+
+	variableDeclarations.forEach((variableDeclaration) => {
+		const identifier: any = variableDeclaration.getNameNode();
+		const references = identifier.findReferences();
+		console.log({ references });
+		if (references.length === 0) {
+			unusedVariables.push(`- ${identifier.getText()}`);
+		}
+	});
+
+	return unusedVariables;
 }
 
-// Run the function to find unused variables
-findUnusedVariables()
-  .then(() => console.log('Unused variables report generated successfully.'))
-  .catch(error => console.error('Error generating unused variables report:', error));
+// Function to process all .ts and .tsx files in a directory
+function processDirectory(directoryPath: string): string[] {
+	const project = new Project();
+	project.addSourceFilesAtPaths(`${directoryPath}/**/*.{ts,tsx}`);
+	const unusedVariables: string[] = [];
+
+	project.getSourceFiles().forEach((sourceFile) => {
+		const fileUnusedVars = findUnusedVariables(sourceFile);
+		if (fileUnusedVars.length <= 1) {
+			unusedVariables.push(`File: ${sourceFile.getFilePath()}`);
+			unusedVariables.push(...fileUnusedVars);
+		}
+	});
+
+	return unusedVariables;
+}
+
+// Main function to run the script
+function main() {
+	console.log("process.argv", process.argv);
+	console.log(process.argv[process.argv.length - 1]);
+	const directoryPath = path.join(
+		process.cwd(),
+		process.argv[process.argv.length - 1],
+	);
+	if (!directoryPath) {
+		console.error("Please provide a directory path as an argument.");
+		process.exit(1);
+	}
+
+	console.log("directoryPath", directoryPath);
+
+	if (
+		!fs.existsSync(directoryPath) ||
+		!fs.lstatSync(directoryPath).isDirectory()
+	) {
+		console.error("The provided path is not a directory or does not exist.");
+		process.exit(1);
+	}
+
+	const unusedVariables = processDirectory(directoryPath);
+
+	if (unusedVariables.length > 0) {
+		const readmePath = path.join(directoryPath, "README.md");
+		const readmeContent = fs.existsSync(readmePath)
+			? fs.readFileSync(readmePath, "utf-8")
+			: "";
+		const newContent =
+			readmeContent +
+			"\n\n## Unused Variables\n\n" +
+			unusedVariables.join("\n");
+		fs.writeFileSync(readmePath, newContent);
+		console.log("Unused variables have been added to README.md.");
+	} else {
+		console.log("No unused variables found.");
+	}
+}
+
+if (require.main === module) {
+	main();
+}
